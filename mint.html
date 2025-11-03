@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mint BOOAI NFT</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+  <script defer src="mint.js"></script>
+  <style>
+    body {
+      background: url('bg.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    img {
+      width: 120px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+    button {
+      padding: 10px 25px;
+      background-color: gold;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #ffd84d;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo.png" alt="BOOAI Logo">
+  <h1>Mint Your BOOAI NFT</h1>
+  <p>Price: $2 (~0.0012 ETH)</p>
+  <p>Total Supply: 50,000 NFTs</p>
+  <button id="connect">Connect Wallet</button>
+  <button id="mint" disabled>Mint NFT</button>
+</body>
+</html>
