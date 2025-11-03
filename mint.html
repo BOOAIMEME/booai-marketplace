@@ -4,8 +4,96 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BOOAI Mint</title>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+
+  <!-- Web3Modal + Wagmi v2 -->
+  <script type="module">
+    import { createWeb3Modal, defaultWagmiConfig } from 'https://esm.sh/@web3modal/wagmi';
+    import { mainnet, base } from 'https://esm.sh/viem/chains';
+    import { createConfig, getAccount, getBalance, writeContract, readContract } from 'https://esm.sh/@wagmi/core';
+    import { ethers } from 'https://esm.sh/ethers@6.10.0';
+
+    const projectId = "c172b1a0c93f7b2e8c5bxxxxxxxxxxxxx"; // replace with your WalletConnect Project ID
+    const metadata = {
+      name: "BOOAI Marketplace",
+      description: "Farcaster NFT Marketplace",
+      url: "https://booai-marketplace.vercel.app",
+      icons: ["https://booai-marketplace.vercel.app/logo.png"]
+    };
+
+    const chains = [base, mainnet];
+    const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata });
+    createWeb3Modal({ wagmiConfig, projectId, chains });
+
+    window.onload = () => {
+      const connectBtn = document.getElementById("connectBtn");
+      const mintBtn = document.getElementById("mintBtn");
+      const status = document.getElementById("status");
+      const mintCounter = document.getElementById("mintCounter");
+
+      const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
+      const ABI = [
+        "function mint(uint256 qty) payable",
+        "function totalSupply() view returns (uint256)",
+        "function maxSupply() view returns (uint256)",
+        "function priceWei() view returns (uint256)"
+      ];
+
+      connectBtn.onclick = async () => {
+        const account = getAccount();
+        if (!account.isConnected) {
+          window.openWeb3Modal();
+        } else {
+          status.innerText = "✅ Connected: " + account.address;
+          mintBtn.disabled = false;
+          await updateMintCount();
+        }
+      };
+
+      async function updateMintCount() {
+        try {
+          const total = await readContract({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: "totalSupply",
+          });
+          const max = await readContract({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: "maxSupply",
+          });
+          mintCounter.innerText = `Minted: ${total} / ${max}`;
+        } catch (e) {
+          mintCounter.innerText = "Minted: ... / 50000";
+        }
+      }
+
+      mintBtn.onclick = async () => {
+        try {
+          const priceWei = await readContract({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: "priceWei",
+          });
+
+          const tx = await writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: "mint",
+            args: [1],
+            value: priceWei,
+          });
+
+          status.innerText = "⏳ Minting in progress...";
+          await tx.wait();
+          status.innerText = "✅ Mint successful!";
+          await updateMintCount();
+        } catch (err) {
+          status.innerText = "❌ Mint failed.";
+        }
+      };
+    };
+  </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -17,7 +105,7 @@
     }
 
     .container {
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       border-radius: 20px;
       padding: 30px;
       display: inline-block;
@@ -54,6 +142,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <img src="logo.png" alt="BOOAI Logo" width="120" />
@@ -66,76 +155,5 @@
 
     <p id="status"></p>
   </div>
-
-  <script>
-    const connectBtn = document.getElementById("connectBtn");
-    const mintBtn = document.getElementById("mintBtn");
-    const status = document.getElementById("status");
-    const mintCounter = document.getElementById("mintCounter");
-
-    const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE"; // replace after deploy
-    const ABI = [
-      "function mint(uint256 qty) payable",
-      "function priceWei() view returns (uint256)",
-      "function totalSupply() view returns (uint256)",
-      "function maxSupply() view returns (uint256)"
-    ];
-
-    let provider;
-    let signer;
-    let contract;
-
-    async function connectWallet() {
-      try {
-        const walletConnectProvider = new WalletConnectProvider.default({
-          rpc: { 8453: "https://mainnet.base.org" },
-          chainId: 8453
-        });
-
-        await walletConnectProvider.enable();
-        provider = new ethers.providers.Web3Provider(walletConnectProvider);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-        const address = await signer.getAddress();
-        status.innerText = "✅ Connected: " + address;
-        connectBtn.innerText = "Wallet Connected";
-        mintBtn.disabled = false;
-
-        updateMintCount();
-      } catch (err) {
-        console.error(err);
-        status.innerText = "❌ Connection failed.";
-      }
-    }
-
-    async function updateMintCount() {
-      try {
-        const total = await contract.totalSupply();
-        const max = await contract.maxSupply();
-        mintCounter.innerText = `Minted: ${total.toString()} / ${max.toString()}`;
-      } catch (err) {
-        mintCounter.innerText = "Minted: ... / 50000";
-        console.error(err);
-      }
-    }
-
-    async function mintNFT() {
-      try {
-        const priceWei = await contract.priceWei();
-        const tx = await contract.mint(1, { value: priceWei });
-        status.innerText = "⏳ Minting in progress...";
-        await tx.wait();
-        status.innerText = "✅ Mint Successful!";
-        updateMintCount();
-      } catch (err) {
-        console.error(err);
-        status.innerText = "❌ Mint failed.";
-      }
-    }
-
-    connectBtn.addEventListener("click", connectWallet);
-    mintBtn.addEventListener("click", mintNFT);
-  </script>
 </body>
 </html>
